@@ -1,12 +1,15 @@
-import "dotenv/config"
 import express from "express";
 import mongoose from "mongoose";
 import cors from 'cors';
 import orderRoutes from './routes/orderRoutes.js'
 import { connectRabbitMQ } from './utils/rabbitmq.js';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+dotenv.config({ path: fileURLToPath(new URL('./.env', import.meta.url)) });
 
 const app=express();
-const PORT=process.env.PORT;
+const PORT=Number(process.env.PORT) || 8004;
 
 
 app.use(express.json());

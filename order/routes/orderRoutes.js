@@ -1,13 +1,12 @@
 import express from 'express';
-import { isAdmin, isAuthenticated } from '../middlewares/isAuthenticated.js';
 import { createOrder, getAllOrder, getMyOrder, getSalesData, getUserOrder, verifyPayment } from '../controllers/orderController.js';
 const router=express.Router();
 
-router.post("/create-order",isAuthenticated,createOrder)
-router.post("/verify-payment",isAuthenticated,verifyPayment)
-router.get("/user-order/:userId",isAuthenticated,isAdmin,getUserOrder)
-router.get("/all-orders",isAuthenticated,isAdmin,getAllOrder)
-router.get("/my-order",isAuthenticated,getMyOrder);
-router.get('/sales',isAuthenticated,isAdmin,getSalesData)
+router.post("/create-order",createOrder)
+router.post("/verify-payment",verifyPayment)
+router.get("/user-order/:userId",getUserOrder)
+router.get("/all-orders",getAllOrder)
+router.get("/my-order",getMyOrder);
+router.get('/sales',getSalesData)
 
 export default router

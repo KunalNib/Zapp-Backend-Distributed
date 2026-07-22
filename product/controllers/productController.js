@@ -1,11 +1,19 @@
 import { Product } from '../models/productModel.js';
 import cloudinary from '../utils/cloudinary.js';
 import getDataUri from '../utils/dataUri.js';
+import { getGatewayUser } from "../utils/authContext.js";
 
 export const addProduct = async (req, res) => {
   try {
     const { productName, productDesc, productPrice, category, brand } = req.body;
-    const userId = req.id;
+    const authUser = getGatewayUser(req);
+    if (!authUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication context is missing"
+      });
+    }
+    const userId = authUser.id;
     if (!productName || !productDesc || !productPrice || !category || !brand) {
       return res.status(400).json({
         success: false,

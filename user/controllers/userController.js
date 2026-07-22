@@ -5,6 +5,7 @@ import { verifyEmail } from "../emailVerify/verifyEmail.js";
 import { Session } from "../models/sessionModel.js";
 import { sendOTPMail } from "../emailVerify/sendOtpMail.js";
 import cloudinary from '../utils/cloudinary.js'
+import { getGatewayUser } from "../utils/authContext.js";
 
 export const register = async (req, res) => {
     try {
@@ -145,8 +146,9 @@ export const login = async (req, res) => {
             })
         }
 
-        const accessToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: '10d' });
-        const refreshToken = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: '30d' });
+        const tokenPayload = { id: user._id, role: user.role };
+        const accessToken = jwt.sign(tokenPayload, process.env.SECRET_KEY, { expiresIn: '10d' });
+        const refreshToken = jwt.sign(tokenPayload, process.env.SECRET_KEY, { expiresIn: '30d' });
         user.isLoggedIn = true;
         await user.save();
 
@@ -175,7 +177,14 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
     try {
-        const userId = req.id;
+        const authUser = getGatewayUser(req);
+        if (!authUser) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication context is missing"
+            });
+        }
+        const userId = authUser.id;
         await Session.deleteMany({ userId: userId });
         await User.findByIdAndUpdate({ _id: userId }, { isLoggedIn: false });
         return res.status(200).json({
@@ -354,8 +363,15 @@ export const getUserById = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const userId = req.params.id;
-    const loggedInUser = req.user;
+    const loggedInUser = getGatewayUser(req);
     const { firstName, lastName, address, city, zipCode, phoneNo,role } = req.body;
+
+    if (!loggedInUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication context is missing"
+      })
+    }
     
     if (loggedInUser.id.toString() != userId && loggedInUser.role !== 'admin') {
       return res.status(403).json({

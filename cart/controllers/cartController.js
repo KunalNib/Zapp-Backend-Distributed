@@ -1,9 +1,17 @@
 import {Cart} from "../models/cartModel.js";
 import { Product } from "../models/productModel.js";
+import { getGatewayUser } from "../utils/authContext.js";
 
 export const getCart = async (req, res) => {
     try {
-        const userId = req.id;
+        const authUser = getGatewayUser(req);
+        if (!authUser) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication context is missing"
+            });
+        }
+        const userId = authUser.id;
         const cart = await Cart.findOne({ userId }).populate("items.productId");
         if (!cart) {
             return res.json({
@@ -27,7 +35,14 @@ export const getCart = async (req, res) => {
 
 export const addToCart = async (req, res) => {
     try {
-        const userId = req.id;
+        const authUser = getGatewayUser(req);
+        if (!authUser) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication context is missing"
+            });
+        }
+        const userId = authUser.id;
         const { productId } = req.body;
 
         const product = await Product.findById(productId);
@@ -87,7 +102,14 @@ export const addToCart = async (req, res) => {
 
 export const updateQuantity = async (req, res) => {
     try {
-        const userId = req.id;
+        const authUser = getGatewayUser(req);
+        if (!authUser) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication context is missing"
+            });
+        }
+        const userId = authUser.id;
         const { productId, type } = req.body;
         let cart = await Cart.findOne({ userId })
         if (!cart) {
@@ -131,7 +153,14 @@ export const updateQuantity = async (req, res) => {
 
 export const removeFromCart = async (req, res) => {
     try {
-        const userId = req.id;
+        const authUser = getGatewayUser(req);
+        if (!authUser) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication context is missing"
+            });
+        }
+        const userId = authUser.id;
         const { productId } = req.body;
         let cart = await Cart.findOne({ userId });
         if (!cart) {
