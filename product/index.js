@@ -4,7 +4,7 @@ import cors from 'cors';
 import productRoutes from "./routes/productRoutes.js";
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-
+import { startGrpcServer } from "./grpcServer.js";
 dotenv.config({ path: fileURLToPath(new URL('./.env', import.meta.url)) });
 
 const app=express();
@@ -27,7 +27,9 @@ const connectDB=async()=>{
         console.log("Mongodb Connection Failed",err);
     }
 }
-connectDB();
+connectDB().then(() => {
+    startGrpcServer();
+});
 
 app.use('/api/product/',productRoutes);
 
