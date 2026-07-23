@@ -3,8 +3,6 @@ import razorpayInstance from "../config/razorpay.js";
 
 import { Order } from "../models/orderModel.js";
 import crypto from 'crypto';
-import User from "../models/userModel.js";
-import { Product } from "../models/productModel.js";
 import { getChannel } from '../utils/rabbitmq.js';
 import { getGatewayUser } from "../utils/authContext.js";
 export const createOrder = async (req, res) => {
@@ -123,8 +121,7 @@ export const getMyOrder=async(req,res)=>{
         }
         const userId=authUser.id;
         const orders=await Order.find({user:userId})
-        .populate({path:"products.productId",select:"productName productPrice productImg"})
-        .populate("user","firstName lastName email");
+        
 
         return res.status(200).json({
             success:true,
@@ -146,7 +143,6 @@ export const getUserOrder=async(req,res)=>{
     try{
         const {userId}=req.params;
         const orders=await Order.find({user:userId})
-        .populate({path:"products.productId",select:"productName productPrice productImg"})
         .populate("user","firstName lastName email");
 
         return res.status(200).json({
@@ -171,7 +167,6 @@ export const getAllOrder=async(req,res)=>{
     try{
         const orders=await Order.find({})
         .sort({createdAt:-1})
-        .populate({path:"products.productId",select:"productName productPrice productImg"})
         .populate("user","firstName lastName email");
 
         return res.status(200).json({
@@ -193,8 +188,6 @@ export const getAllOrder=async(req,res)=>{
 
 export const getSalesData=async(req,res)=>{
     try{
-        const totalUsers=await User.countDocuments({});
-        const totalProducts=await Product.countDocuments({});
         const totalOrders=await Order.countDocuments({status:"Paid"});
 
         const totalSalesAgg= await Order.aggregate([
@@ -232,7 +225,6 @@ export const getSalesData=async(req,res)=>{
         return res.json({
             success:true,
             totalUsers,
-            totalProducts,
             totalOrders,
             totalSales,
             salesByDate:formattedSales

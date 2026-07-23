@@ -1,20 +1,7 @@
 import {Cart} from "../models/cartModel.js";
 import { getGatewayUser } from "../utils/authContext.js";
 
-const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || "http://localhost:8002";
-
-const getProductFromProductService = async (productId) => {
-    const response = await fetch(`${PRODUCT_SERVICE_URL}/api/product/${productId}`);
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-        const error = new Error(data.message || "Product service request failed");
-        error.statusCode = response.status;
-        throw error;
-    }
-
-    return data.product;
-};
+import { getProductViaGrpc } from "../grpcClient.js";
 
 export const getCart = async (req, res) => {
     try {
@@ -59,15 +46,13 @@ export const addToCart = async (req, res) => {
         const userId = authUser.id;
         const { productId } = req.body;
 
-        const product = await getProductFromProductService(productId);
+        const product = await getProductViaGrpc(productId);
         if (!product) {
             return res.status(404).json({
                 success: false,
                 message: "Product Not Found"
             })
         }
-
-        //find user cart if there are already some items
 
         let cart = await Cart.findOne({ userId });
         if (!cart) {
@@ -84,7 +69,6 @@ export const addToCart = async (req, res) => {
             })
         }
         else {
-            //Finding Existing product
             const index = cart.items.findIndex((item) => item.productId.toString() === productId);
             if (index > -1) {
                 cart.items[index].quantity += 1;
@@ -113,9 +97,10 @@ export const addToCart = async (req, res) => {
 
     }
     catch (error) {
+        console.error("Crash inside addToCart:", error);
         return res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message + " - Stack: " + error.stack
         })
     }
 }

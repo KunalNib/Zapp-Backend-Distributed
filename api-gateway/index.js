@@ -28,21 +28,25 @@ const services = {
 const userProxy = createProxyMiddleware({
     target: services['/api/user'],
     changeOrigin: true,
+    pathRewrite: (path, req) => req.originalUrl,
 });
 
 const productProxy = createProxyMiddleware({
     target: services['/api/product'],
     changeOrigin: true,
+    pathRewrite: (path, req) => req.originalUrl,
 });
 
 const cartProxy = createProxyMiddleware({
     target: services['/api/cart'],
     changeOrigin: true,
+    pathRewrite: (path, req) => req.originalUrl,
 });
 
 const orderProxy = createProxyMiddleware({
     target: services['/api/orders'],
     changeOrigin: true,
+    pathRewrite: (path, req) => req.originalUrl,
 });
 
 app.use('/api/user/logout', requireGatewayAuth(), userProxy);
