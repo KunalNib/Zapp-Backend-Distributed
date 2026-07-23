@@ -82,6 +82,30 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
+export const getProductById = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const product = await Product.findById(productId).select("productName productPrice productImg category brand");
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product Not Found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      product
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const deleteProduct = async (req, res) => {
   try {
     const {productId} = req.params;

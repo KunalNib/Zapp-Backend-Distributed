@@ -1,6 +1,20 @@
 import {Cart} from "../models/cartModel.js";
-import { Product } from "../models/productModel.js";
 import { getGatewayUser } from "../utils/authContext.js";
+
+const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || "http://localhost:8002";
+
+const getProductFromProductService = async (productId) => {
+    const response = await fetch(`${PRODUCT_SERVICE_URL}/api/product/${productId}`);
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        const error = new Error(data.message || "Product service request failed");
+        error.statusCode = response.status;
+        throw error;
+    }
+
+    return data.product;
+};
 
 export const getCart = async (req, res) => {
     try {
@@ -12,7 +26,7 @@ export const getCart = async (req, res) => {
             });
         }
         const userId = authUser.id;
-        const cart = await Cart.findOne({ userId }).populate("items.productId");
+        const cart = await Cart.findOne({ userId });
         if (!cart) {
             return res.json({
                 success: true,
@@ -26,7 +40,7 @@ export const getCart = async (req, res) => {
 
     }
     catch (error) {
-        return res.status(500).json({
+        return res.status(error.statusCode || 500).json({
             success: false,
             message: error.message
         })
@@ -45,7 +59,7 @@ export const addToCart = async (req, res) => {
         const userId = authUser.id;
         const { productId } = req.body;
 
-        const product = await Product.findById(productId);
+        const product = await getProductFromProductService(productId);
         if (!product) {
             return res.status(404).json({
                 success: false,
@@ -59,7 +73,13 @@ export const addToCart = async (req, res) => {
         if (!cart) {
             cart = new Cart({
                 userId,
-                items: [{ productId, quantity: 1, price: product.productPrice }],
+                items: [{
+                    productId,
+                    productName: product.productName,
+                    productImg: product.productImg || [],
+                    quantity: 1,
+                    price: product.productPrice
+                }],
                 totalPrice: product.productPrice
             })
         }
@@ -72,6 +92,8 @@ export const addToCart = async (req, res) => {
             else {
                 cart.items.push({
                     productId: productId,
+                    productName: product.productName,
+                    productImg: product.productImg || [],
                     quantity: 1,
                     price: product.productPrice
                 })
@@ -81,8 +103,6 @@ export const addToCart = async (req, res) => {
             )
         }
         await cart.save();
-
-        await cart.populate("items.productId");
 
         return res.status(200).json({
             success: true,
@@ -118,7 +138,7 @@ export const updateQuantity = async (req, res) => {
                 message: "Cart Not Found"
             })
         }
-        const item = cart.items.find((i) => i.productId._id.toString() === productId.toString());
+        const item = cart.items.find((i) => i.productId.toString() === productId.toString());
         if (!item) {
             return res.status(404).json({
                 success: false,
@@ -137,7 +157,6 @@ export const updateQuantity = async (req, res) => {
             acc + item.price * item.quantity, 0
         )
         await cart.save();
-        cart = await cart.populate("items.productId");
         return res.status(200).json({
             success: true,
             cart
@@ -169,10 +188,9 @@ export const removeFromCart = async (req, res) => {
                 message: "Cart Not Found"
             })
         }
-        cart.items = cart.items.filter(item => item.productId._id.toString() !== productId);
+        cart.items = cart.items.filter(item => item.productId.toString() !== productId);
         cart.totalPrice = cart.items.reduce((acc, item) => acc + item.price * item.quantity, 0)
         await cart.save();
-        cart = await cart.populate("items.productId")
 
         return res.status(200).json({
             success: true,
