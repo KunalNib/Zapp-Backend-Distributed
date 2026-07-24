@@ -1,12 +1,10 @@
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs";
-import { verifyEmail } from "../emailVerify/verifyEmail.js";
 import { Session } from "../models/sessionModel.js";
-import { sendOTPMail } from "../emailVerify/sendOtpMail.js";
 import cloudinary from '../utils/cloudinary.js'
 import { getGatewayUser } from "../utils/authContext.js";
-
+import { getChannel } from '../utils/rabbitmq.js';
 export const register = async (req, res) => {
     try {
         const { firstName, lastName, email, password } = req.body;
@@ -25,7 +23,14 @@ export const register = async (req, res) => {
             password: hashedPassword
         });
         const token = jwt.sign({ id: newUser._id }, process.env.SECRET_KEY, { expiresIn: "10m" }); //expires in 10 min
-        verifyEmail(token, email);
+        
+        // Publish user.registered event
+        const channel = getChannel();
+        const exchange = 'user_exchange';
+        await channel.assertExchange(exchange, 'topic', { durable: true });
+        const eventPayload = JSON.stringify({ email, token });
+        channel.publish(exchange, 'user.registered', Buffer.from(eventPayload));
+
         newUser.token = token;
         await newUser.save();
         return res.status(201).json({ success: true, message: "User registered successfully", user: newUser });
@@ -99,7 +104,14 @@ export const reVerify = async (req, res) => {
             })
         }
         const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: '10m' });
-        verifyEmail(token, email);
+        
+        // Publish user.registered event for reverify
+        const channel = getChannel();
+        const exchange = 'user_exchange';
+        await channel.assertExchange(exchange, 'topic', { durable: true });
+        const eventPayload = JSON.stringify({ email, token });
+        channel.publish(exchange, 'user.registered', Buffer.from(eventPayload));
+
         user.token = token;
         await user.save();
         res.status(200).json({
@@ -220,7 +232,14 @@ export const forgotPassword = async (req, res) => {
         user.otp = otp;
         user.otpExpiry = otpExpiry;
         await user.save();
-        await sendOTPMail(otp, email);
+
+        // Publish user.forgot_password event
+        const channel = getChannel();
+        const exchange = 'user_exchange';
+        await channel.assertExchange(exchange, 'topic', { durable: true });
+        const eventPayload = JSON.stringify({ email, otp });
+        channel.publish(exchange, 'user.forgot_password', Buffer.from(eventPayload));
+
         return res.status(200).json({
             success: true,
             message: 'otp sent to email successfully'

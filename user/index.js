@@ -4,6 +4,7 @@ import userRoutes from "./routes/userRoutes.js";
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import { connectRabbitMQ } from './utils/rabbitmq.js';
 
 dotenv.config({ path: fileURLToPath(new URL('./.env', import.meta.url)) });
 
@@ -28,6 +29,7 @@ const connectDB=async()=>{
     }
 }
 connectDB();
+connectRabbitMQ();
 
 app.use('/api/user/',userRoutes);
 

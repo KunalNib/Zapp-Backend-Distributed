@@ -7,7 +7,7 @@ export const connectRabbitMQ = async (retries = 5) => {
         try {
             const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://localhost');
             channel = await connection.createChannel();
-            console.log("Connected to RabbitMQ in Order Service");
+            console.log("Connected to RabbitMQ in User Service");
             
             connection.on("error", (err) => {
                 console.error("RabbitMQ Connection Error:", err);
@@ -24,7 +24,7 @@ export const connectRabbitMQ = async (retries = 5) => {
             retries -= 1;
             console.error(`RabbitMQ connection failed, retries left: ${retries}`, error);
             if (retries === 0) {
-                console.error("Could not connect to RabbitMQ in Order Service.");
+                console.error("Could not connect to RabbitMQ in User Service.");
             } else {
                 await new Promise(res => setTimeout(res, 5000));
             }

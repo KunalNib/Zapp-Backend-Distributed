@@ -35,6 +35,19 @@ export const createOrder = async (req, res) => {
         })
 
         await newOrder.save();
+        
+        // Publish order.created event
+        const channel = getChannel();
+        const exchange = 'order_exchange';
+        await channel.assertExchange(exchange, 'topic', { durable: true });
+        const eventPayload = JSON.stringify({ 
+            email: authUser.email, 
+            orderDetails: {
+                amount,
+                currency
+            }
+        });
+        channel.publish(exchange, 'order.created', Buffer.from(eventPayload));
 
         res.status(200).json({
             success: true,
@@ -83,7 +96,11 @@ export const verifyPayment = async (req, res) => {
             const channel = getChannel();
             const exchange = 'order_exchange';
             await channel.assertExchange(exchange, 'topic', { durable: true });
-            const eventPayload = JSON.stringify({ userId, orderId: order._id });
+            const eventPayload = JSON.stringify({ 
+                userId, 
+                email: authUser.email,
+                orderDetails: { orderId: order._id }
+            });
             channel.publish(exchange, 'order.payment.successful', Buffer.from(eventPayload));
 
             return res.status(200).json({
